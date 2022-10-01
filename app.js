@@ -42,7 +42,7 @@ const client = new Client({
   restartOnAuthFail: true,
   puppeteer: {
     headless: true,
-    userDataDir: "./userdata",
+    userDataDir: "userdata",
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
