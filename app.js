@@ -9,12 +9,21 @@ const { phoneNumberFormatter } = require('./helpers/formatter');
 const fileUpload = require('express-fileupload');
 const axios = require('axios');
 const mime = require('mime-types');
+const Sequelize = require('sequelize');
+const {
+  QueryTypes
+} = require('sequelize');
+const sequelize = new Sequelize("mysql://root:8iojM1sGSYN8ETjxgWax@containers-us-west-84.railway.app:6952/railway");
+
 
 const port = process.env.PORT || 8000;
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
+
+app.set('view engine', 'ejs');
+app.set('views', 'views');
 
 app.use(express.json());
 app.use(express.urlencoded({
@@ -37,6 +46,61 @@ app.get('/', (req, res) => {
     root: __dirname
   });
 });
+
+app.get('/contatos', async (req, res) => {
+
+  const contatos = await sequelize.query("SELECT * FROM contatossoucannabis", { 
+    type: QueryTypes.SELECT
+  });
+ 
+   // res.send(result[0].node.record_fields[0].name)
+    res.render("contatos", {contatos})
+});
+
+var numbers = []
+app.post('/send-messages', async (req, res) => {
+   
+  numbers = req.body.getTel
+  message = req.body.message
+
+  for(var i=0;i < 3;i++){
+
+    var dataMesage = JSON.stringify({
+      "number": "5548999287996",
+      "message": "xxx"
+    });
+    
+      var config = {
+        method: 'post',
+        url: 'https://whatsappapi.soucannabis.ong.br/send-message',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        data : dataMesage
+      };
+
+      function wait(ms) {
+        return new Promise( (resolve) => {setTimeout(resolve, ms)});
+    }
+           
+      axios(config)
+      .then(function (response) {
+        console.log(JSON.stringify(response.data));
+      })
+      .then( await  wait(5000))
+      .catch(function (error) {
+        console.log(error);
+      });
+
+
+  }
+
+
+})
+
+app.get('/send-messages', async (req, res) => {
+  res.send(numbers)
+})
 
 const client = new Client({
   restartOnAuthFail: true,
@@ -123,33 +187,33 @@ client.initialize();
 
 // Socket IO
 io.on('connection', function(socket) {
-  socket.emit('message', 'Connecting...');
+  socket.emit('message', 'Aguardando QR CODE...');
 
   client.on('qr', (qr) => {
     console.log('QR RECEIVED', qr);
     qrcode.toDataURL(qr, (err, url) => {
       socket.emit('qr', url);
-      socket.emit('message', 'QR Code received, scan please!');
+      socket.emit('message', 'QR Code recebido!, escanear...');
     });
   });
 
   client.on('ready', () => {
-    socket.emit('ready', 'Whatsapp is ready!');
-    socket.emit('message', 'Whatsapp is ready!');
+    socket.emit('ready', 'souCannabis Whatsapp API RUN!');
+    socket.emit('message', 'souCannabis Whatsapp API RUN!');
   });
 
   client.on('authenticated', () => {
-    socket.emit('authenticated', 'Whatsapp is authenticated!');
-    socket.emit('message', 'Whatsapp is authenticated!');
-    console.log('AUTHENTICATED');
+    socket.emit('authenticated', 'Whatsapp esá autenticado!');
+    socket.emit('message', 'Whatsapp esá autenticado!');
+    console.log('AUTENTICADO');
   });
 
   client.on('auth_failure', function(session) {
-    socket.emit('message', 'Auth failure, restarting...');
+    socket.emit('message', 'A conexão falhou, reiniciando...');
   });
 
   client.on('disconnected', (reason) => {
-    socket.emit('message', 'Whatsapp is disconnected!');
+    socket.emit('message', 'Whatsapp está desconectado');
     client.destroy();
     client.initialize();
   });
@@ -187,7 +251,7 @@ app.post('/send-message', [
   if (!isRegisteredNumber) {
     return res.status(422).json({
       status: false,
-      message: 'The number is not registered'
+      message: 'O número não está registrado'
     });
   }
 
